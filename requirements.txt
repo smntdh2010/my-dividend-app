@@ -1,0 +1,6 @@
+streamlit
+pandas
+yfinance
+holidays
+st-gsheets-connection
+openpyxl
