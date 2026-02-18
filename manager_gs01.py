@@ -24,23 +24,6 @@ st.markdown("""
 # --- 구글 시트 연결 및 배당 계산 클래스 ---
 class DividendDashboard:
 
-    def check_password():
-        """비밀번호가 맞는지 확인하는 함수"""
-        if "password_correct" not in st.session_state:
-            st.session_state["password_correct"] = False
-
-        if not st.session_state["password_correct"]:
-            # 비밀번호 입력창 표시
-            pwd = st.text_input("접근 비밀번호를 입력하세요", type="password")
-            if st.button("로그인"):
-                if pwd == "9705": # 여기에 실제 사용할 비번 입력
-                    st.session_state["password_correct"] = True
-                    st.rerun()
-                else:
-                    st.error("비밀번호가 틀렸습니다.")
-            return False
-        return True
-
     def __init__(self):
         self.tax_rate = 0.15
         self.kr_biz_day = CustomBusinessDay(holidays=holidays.KR())
@@ -121,6 +104,30 @@ class DividendDashboard:
             progress_bar.progress((idx + 1) / len(unique_tickers))
         progress_bar.empty()
         return pd.DataFrame(all_data)
+
+
+
+def check_password():
+    """비밀번호가 맞는지 확인하는 함수"""
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if not st.session_state["password_correct"]:
+        # 비밀번호 입력창 표시 (중앙 정렬을 위해 컬럼 활용 가능)
+        _, col2, _ = st.columns([1, 2, 1])
+        with col2:
+            st.subheader("🔒 인증이 필요합니다")
+            pwd = st.text_input("접근 비밀번호를 입력하세요", type="password")
+            if st.button("로그인"):
+                # 실제 사용할 비밀번호로 수정하세요
+                if pwd == "1234": 
+                    st.session_state["password_correct"] = True
+                    st.rerun()
+                else:
+                    st.error("비밀번호가 틀렸습니다.")
+        return False
+    return True
+
 
 # --- 앱 UI 실행부 ---
     if check_password():
