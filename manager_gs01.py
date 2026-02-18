@@ -120,7 +120,7 @@ def check_password():
             pwd = st.text_input("접근 비밀번호를 입력하세요", type="password")
             if st.button("로그인"):
                 # 실제 사용할 비밀번호로 수정하세요
-                if pwd == "9705": 
+                if pwd == st.secrets["MY_PWD"]: 
                     st.session_state["password_correct"] = True
                     st.rerun()
                 else:
