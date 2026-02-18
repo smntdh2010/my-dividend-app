@@ -173,11 +173,13 @@ with tab1:
                 is_sum_row = '합계' in str(row['배당락일'])
                 for i, col in enumerate(row.index):
                     if is_sum_row:
-                        styles[i] = 'background-color: #FFEDD5;'
+                        styles[i] = 'background-color: #FFEDD5; font-weight: bold;'
                         if col == '환율':
                             val = row[col]
                             if isinstance(val, (int, float)) and val < 0:
-                                styles[i] += 'color: #D32F2F; font-weight: bold;'
+                                styles[i] += 'color: #D32F2F; font-weight: bold;' # 진한 빨강 및 굵게
+                            elif isinstance(val, (int, float)) and val > 0:
+                                styles[i] += 'color: #009900; font-weight: bold;' # 양수일 경우 
                 return styles
 
             fi, f2, f4 = lambda x: f"{x:,.0f}" if isinstance(x, (int, float)) else x, \
@@ -195,3 +197,4 @@ with tab1:
             with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                 display_df[final_cols].to_excel(writer, index=False)
             st.download_button("📥 엑셀 저장", buffer.getvalue(), f"Dividend_{target_year}.xlsx")
+
