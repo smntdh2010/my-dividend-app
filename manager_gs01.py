@@ -18,8 +18,29 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+
+
+
 # --- 구글 시트 연결 및 배당 계산 클래스 ---
 class DividendDashboard:
+
+    def check_password():
+        """비밀번호가 맞는지 확인하는 함수"""
+        if "password_correct" not in st.session_state:
+            st.session_state["password_correct"] = False
+
+        if not st.session_state["password_correct"]:
+            # 비밀번호 입력창 표시
+            pwd = st.text_input("접근 비밀번호를 입력하세요", type="password")
+            if st.button("로그인"):
+                if pwd == "9705": # 여기에 실제 사용할 비번 입력
+                    st.session_state["password_correct"] = True
+                    st.rerun()
+                else:
+                    st.error("비밀번호가 틀렸습니다.")
+            return False
+        return True
+
     def __init__(self):
         self.tax_rate = 0.15
         self.kr_biz_day = CustomBusinessDay(holidays=holidays.KR())
@@ -102,6 +123,8 @@ class DividendDashboard:
         return pd.DataFrame(all_data)
 
 # --- 앱 UI 실행부 ---
+if check_password():
+    
 manager = DividendDashboard()
 tab1, tab2 = st.tabs(["📊 배당금 통합 리포트", "⚙️ 계좌/자산 관리"])
 
@@ -177,7 +200,7 @@ with tab1:
                         if col == '환율':
                             val = row[col]
                             if isinstance(val, (int, float)) and val < 0:
-                                styles[i] += 'color: #D32F2F; font-weight: bold;' # 진한 빨강 및 굵게
+                                styles[i] += 'color: #D32F2F; font-weight: bold;'# 진한 빨강 및 굵게
                             elif isinstance(val, (int, float)) and val > 0:
                                 styles[i] += 'color: #009900; font-weight: bold;' # 양수일 경우 
                 return styles
@@ -197,4 +220,3 @@ with tab1:
             with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                 display_df[final_cols].to_excel(writer, index=False)
             st.download_button("📥 엑셀 저장", buffer.getvalue(), f"Dividend_{target_year}.xlsx")
-
