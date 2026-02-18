@@ -162,7 +162,7 @@ if check_password():
         if 'raw_data' not in st.session_state:
             st.session_state.raw_data = None
 
-        if st.sidebar.button("배당 조회 실행"):
+        if st.sidebar.button("조회"):
             balance_df = manager.load_assets()
             if balance_df.empty:
                 st.warning("데이터가 없습니다.")
