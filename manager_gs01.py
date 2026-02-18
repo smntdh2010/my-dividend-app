@@ -164,17 +164,7 @@ if check_password():
         except Exception as e:
             st.error(f"데이터를 불러오지 못했습니다. URL 설정을 확인하세요: {e}")
 
-
-#    # [데이터 준비]
-#    st.sidebar.header("조회 조건")
-#    target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
-#    if 'raw_data' not in st.session_state: st.session_state.raw_data = None
-#    if st.sidebar.button("조회"):
-#        balance_df = manager.load_assets()
-#        if not balance_df.empty:
-#            with st.spinner("데이터 동기화 중..."):
-#                st.session_state.raw_data = manager.fetch_data_by_year(target_year, balance_df)
-                
+        
 
     # [탭 1: 리포트]
     with tab1:
@@ -331,3 +321,4 @@ if check_password():
             
 
             
+
