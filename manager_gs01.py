@@ -123,100 +123,100 @@ class DividendDashboard:
         return pd.DataFrame(all_data)
 
 # --- 앱 UI 실행부 ---
-if check_password():
-    
-manager = DividendDashboard()
-tab1, tab2 = st.tabs(["📊 배당금 통합 리포트", "⚙️ 계좌/자산 관리"])
+    if check_password():
+        
+    manager = DividendDashboard()
+    tab1, tab2 = st.tabs(["📊 배당금 통합 리포트", "⚙️ 계좌/자산 관리"])
 
-with tab2:
-    st.subheader("보유 종목 관리 (Google Sheets 동기화)")
-    try:
-        current_assets = manager.load_assets()
-        edited_df = st.data_editor(
-            current_assets,
-            column_config={
-                "매수일": st.column_config.DateColumn("매수일", format="YYYY-MM-DD"),
-                "수량": st.column_config.NumberColumn("수량", min_value=1),
-            },
-            num_rows="dynamic", use_container_width=True, hide_index=True, height=1000, key="gsheet_editor"
-        )
-        if st.button("💾 구글 시트에 저장"):
-            manager.save_assets(edited_df)
-            st.success("구글 시트 데이터가 업데이트되었습니다!")
-    except Exception as e:
-        st.error(f"데이터를 불러오지 못했습니다. URL 설정을 확인하세요: {e}")
+    with tab2:
+        st.subheader("보유 종목 관리 (Google Sheets 동기화)")
+        try:
+            current_assets = manager.load_assets()
+            edited_df = st.data_editor(
+                current_assets,
+                column_config={
+                    "매수일": st.column_config.DateColumn("매수일", format="YYYY-MM-DD"),
+                    "수량": st.column_config.NumberColumn("수량", min_value=1),
+                },
+                num_rows="dynamic", use_container_width=True, hide_index=True, height=1000, key="gsheet_editor"
+            )
+            if st.button("💾 구글 시트에 저장"):
+                manager.save_assets(edited_df)
+                st.success("구글 시트 데이터가 업데이트되었습니다!")
+        except Exception as e:
+            st.error(f"데이터를 불러오지 못했습니다. URL 설정을 확인하세요: {e}")
 
-with tab1:
-    st.sidebar.header("조회 조건")
-    target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
+    with tab1:
+        st.sidebar.header("조회 조건")
+        target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
 
-    if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = None
+        if 'raw_data' not in st.session_state:
+            st.session_state.raw_data = None
 
-    if st.sidebar.button("배당 조회 실행"):
-        balance_df = manager.load_assets()
-        if balance_df.empty:
-            st.warning("데이터가 없습니다.")
-        else:
-            with st.spinner("구글 시트에서 계산 중..."):
-                st.session_state.raw_data = manager.fetch_data_by_year(target_year, balance_df)
+        if st.sidebar.button("배당 조회 실행"):
+            balance_df = manager.load_assets()
+            if balance_df.empty:
+                st.warning("데이터가 없습니다.")
+            else:
+                with st.spinner("구글 시트에서 계산 중..."):
+                    st.session_state.raw_data = manager.fetch_data_by_year(target_year, balance_df)
 
-    if st.session_state.raw_data is not None and not st.session_state.raw_data.empty:
-        raw_df = st.session_state.raw_data.copy()
-        all_tickers = sorted(raw_df['종목코드'].unique())
-        selected_tickers = st.multiselect("종목 필터", options=all_tickers)
-        if selected_tickers:
-            raw_df = raw_df[raw_df['종목코드'].isin(selected_tickers)]
+        if st.session_state.raw_data is not None and not st.session_state.raw_data.empty:
+            raw_df = st.session_state.raw_data.copy()
+            all_tickers = sorted(raw_df['종목코드'].unique())
+            selected_tickers = st.multiselect("종목 필터", options=all_tickers)
+            if selected_tickers:
+                raw_df = raw_df[raw_df['종목코드'].isin(selected_tickers)]
 
-        if not raw_df.empty:
-            raw_df = raw_df.sort_values(by='국내지급일').reset_index(drop=True)
-            raw_df['pay_month'] = raw_df['국내지급일'].str[:7]
-            
-            final_list = []
-            prev_month_after_tax_usd = 0.0
-
-            for month, group in raw_df.groupby('pay_month', sort=False):
-                current_month_after_tax_usd = group['세후(USD)'].sum()
-                diff = current_month_after_tax_usd - prev_month_after_tax_usd
-                final_list.append(group)
-                sum_row = pd.DataFrame([{
-                    '배당락일': f'[{month}] 합계', '세전(USD)': group['세전(USD)'].sum(), 
-                    '세후(USD)': current_month_after_tax_usd, '세전(원)': group['세전(원)'].sum(), 
-                    '세후(원)': group['세후(원)'].sum(), '환율': diff 
-                }])
-                final_list.append(sum_row)
-                prev_month_after_tax_usd = current_month_after_tax_usd
+            if not raw_df.empty:
+                raw_df = raw_df.sort_values(by='국내지급일').reset_index(drop=True)
+                raw_df['pay_month'] = raw_df['국내지급일'].str[:7]
                 
-            display_df = pd.concat(final_list, ignore_index=True).drop(columns=['pay_month']).fillna("")
-            final_cols = ['배당락일', '현지지급일', '국내지급일', '종목코드', '수량', '종가', '배당률(%)', '배당금', '세전(USD)', '세후(USD)', '세전(원)', '세후(원)', '환율', '계좌번호']
-            display_df['계좌번호'] = display_df['계좌번호'].apply(lambda x: "*" * (len(str(x)) - 5) + str(x)[-5:] if (x and len(str(x)) > 5) else str(x))
+                final_list = []
+                prev_month_after_tax_usd = 0.0
 
-            def style_report(row):
-                styles = [''] * len(row)
-                is_sum_row = '합계' in str(row['배당락일'])
-                for i, col in enumerate(row.index):
-                    if is_sum_row:
-                        styles[i] = 'background-color: #FFEDD5; font-weight: bold;'
-                        if col == '환율':
-                            val = row[col]
-                            if isinstance(val, (int, float)) and val < 0:
-                                styles[i] += 'color: #D32F2F; font-weight: bold;'# 진한 빨강 및 굵게
-                            elif isinstance(val, (int, float)) and val > 0:
-                                styles[i] += 'color: #009900; font-weight: bold;' # 양수일 경우 
-                return styles
+                for month, group in raw_df.groupby('pay_month', sort=False):
+                    current_month_after_tax_usd = group['세후(USD)'].sum()
+                    diff = current_month_after_tax_usd - prev_month_after_tax_usd
+                    final_list.append(group)
+                    sum_row = pd.DataFrame([{
+                        '배당락일': f'[{month}] 합계', '세전(USD)': group['세전(USD)'].sum(), 
+                        '세후(USD)': current_month_after_tax_usd, '세전(원)': group['세전(원)'].sum(), 
+                        '세후(원)': group['세후(원)'].sum(), '환율': diff 
+                    }])
+                    final_list.append(sum_row)
+                    prev_month_after_tax_usd = current_month_after_tax_usd
+                    
+                display_df = pd.concat(final_list, ignore_index=True).drop(columns=['pay_month']).fillna("")
+                final_cols = ['배당락일', '현지지급일', '국내지급일', '종목코드', '수량', '종가', '배당률(%)', '배당금', '세전(USD)', '세후(USD)', '세전(원)', '세후(원)', '환율', '계좌번호']
+                display_df['계좌번호'] = display_df['계좌번호'].apply(lambda x: "*" * (len(str(x)) - 5) + str(x)[-5:] if (x and len(str(x)) > 5) else str(x))
 
-            fi, f2, f4 = lambda x: f"{x:,.0f}" if isinstance(x, (int, float)) else x, \
-                         lambda x: f"{x:,.2f}" if isinstance(x, (int, float)) else x, \
-                         lambda x: f"{x:,.4f}" if isinstance(x, (int, float)) else x
+                def style_report(row):
+                    styles = [''] * len(row)
+                    is_sum_row = '합계' in str(row['배당락일'])
+                    for i, col in enumerate(row.index):
+                        if is_sum_row:
+                            styles[i] = 'background-color: #FFEDD5; font-weight: bold;'
+                            if col == '환율':
+                                val = row[col]
+                                if isinstance(val, (int, float)) and val < 0:
+                                    styles[i] += 'color: #D32F2F; font-weight: bold;'# 진한 빨강 및 굵게
+                                elif isinstance(val, (int, float)) and val > 0:
+                                    styles[i] += 'color: #009900; font-weight: bold;' # 양수일 경우 
+                    return styles
 
-            styled_df = display_df[final_cols].style \
-                .format({'수량': fi, '세전(원)': fi, '세후(원)': fi, '종가': f2, '배당률(%)': f2, '세전(USD)': f2, '세후(USD)': f2, '배당금': f4}) \
-                .format(lambda x: f"{x:,.2f}" if isinstance(x, (int, float)) else x, subset=['환율']) \
-                .apply(style_report, axis=1)
+                fi, f2, f4 = lambda x: f"{x:,.0f}" if isinstance(x, (int, float)) else x, \
+                             lambda x: f"{x:,.2f}" if isinstance(x, (int, float)) else x, \
+                             lambda x: f"{x:,.4f}" if isinstance(x, (int, float)) else x
 
-            st.dataframe(styled_df, use_container_width=True, height=1000, hide_index=True)
-            
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                display_df[final_cols].to_excel(writer, index=False)
-            st.download_button("📥 엑셀 저장", buffer.getvalue(), f"Dividend_{target_year}.xlsx")
+                styled_df = display_df[final_cols].style \
+                    .format({'수량': fi, '세전(원)': fi, '세후(원)': fi, '종가': f2, '배당률(%)': f2, '세전(USD)': f2, '세후(USD)': f2, '배당금': f4}) \
+                    .format(lambda x: f"{x:,.2f}" if isinstance(x, (int, float)) else x, subset=['환율']) \
+                    .apply(style_report, axis=1)
+
+                st.dataframe(styled_df, use_container_width=True, height=1000, hide_index=True)
+                
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    display_df[final_cols].to_excel(writer, index=False)
+                st.download_button("📥 엑셀 저장", buffer.getvalue(), f"Dividend_{target_year}.xlsx")
