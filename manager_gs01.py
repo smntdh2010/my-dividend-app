@@ -3,6 +3,7 @@ import pandas as pd
 import yfinance as yf
 import holidays
 import io
+import plotly.express as px  # 시각화를 위한 라이브러리 추가
 from datetime import datetime
 from pandas.tseries.offsets import CustomBusinessDay
 from streamlit_gsheets import GSheetsConnection
@@ -135,8 +136,9 @@ def check_password():
 if check_password():
 
     manager = DividendDashboard()
-    tab1, tab2 = st.tabs(["📊 배당금 통합 리포트", "⚙️ 계좌/자산 관리"])
+    tab1, tab2, tab3 = st.tabs(["📊 배당금 통합 리포트", "⚙️ 계좌/자산 관리", "📈 시각화 분석"])
 
+    # [탭 2: 자산 관리]
     with tab2:
         st.subheader("보유 종목 관리 (Google Sheets 동기화)")
         try:
@@ -155,6 +157,18 @@ if check_password():
         except Exception as e:
             st.error(f"데이터를 불러오지 못했습니다. URL 설정을 확인하세요: {e}")
 
+
+    # [데이터 준비]
+    st.sidebar.header("조회 조건")
+    target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
+    if 'raw_data' not in st.session_state: st.session_state.raw_data = None
+    if st.sidebar.button("배당 조회 실행"):
+        balance_df = manager.load_assets()
+        if not balance_df.empty:
+            with st.spinner("데이터 동기화 중..."):
+                st.session_state.raw_data = manager.fetch_data_by_year(target_year, balance_df)
+
+    # [탭 1: 리포트]
     with tab1:
         st.sidebar.header("조회 조건")
         target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
@@ -230,3 +244,53 @@ if check_password():
                     display_df[final_cols].to_excel(writer, index=False)
                 st.download_button("📥 엑셀 저장", buffer.getvalue(), f"Dividend_{target_year}.xlsx")
 
+
+    # [탭 3: 시각화 분석]
+    with tab3:
+        if st.session_state.raw_data is not None and not st.session_state.raw_data.empty:
+            df = st.session_state.raw_data.copy()
+            
+            st.subheader(f"📅 {target_year}년 배당 시각화 요약")
+            
+            col1, col2 = st.columns([3, 2])
+            
+            with col1:
+                st.write("#### 월별 세후 배당금 흐름 (원)")
+                # 월별 합계 데이터 가공
+                monthly_df = df.groupby('pay_month')['세후(원)'].sum().reset_index()
+                fig_bar = px.bar(monthly_df, x='pay_month', y='세후(원)', 
+                                 text_auto=',.0f', labels={'pay_month':'지급월', '세후(원)':'배당금(원)'},
+                                 color_discrete_sequence=['#FFAB40']) # 옅은 주황색 계열
+                fig_bar.update_layout(xaxis_type='category')
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+            with col2:
+                st.write("#### 종목별 배당 비중 (세후 USD)")
+                # 종목별 합계 데이터 가공
+                ticker_df = df.groupby('종목코드')['세후(USD)'].sum().reset_index()
+                fig_pie = px.pie(ticker_df, values='세후(USD)', names='종목코드', 
+                                 hole=0.4, # 도넛 모양
+                                 color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig_pie, use_container_width=True)
+                
+            st.divider()
+            
+            # 하단 추가 지표
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                total_krw = df['세후(원)'].sum()
+                st.metric("연간 총 배당금(세후)", f"{total_krw:,.0f} 원")
+            with c2:
+                total_usd = df['세후(USD)'].sum()
+                st.metric("연간 총 배당금(USD)", f"${total_usd:,.2f}")
+            with c3:
+                top_ticker = ticker_df.loc[ticker_df['세후(USD)'].idxmax(), '종목코드']
+                st.metric("최대 배당 종목", top_ticker)
+        else:
+            st.info("사이드바에서 '배당 조회 실행' 버튼을 먼저 눌러주세요.")
+
+
+
+
+            
