@@ -156,15 +156,14 @@ if check_password():
                     "매수일": st.column_config.DateColumn("매수일", format="YYYY-MM-DD"),
                     "수량": st.column_config.NumberColumn("수량", min_value=1),
                 },
-                num_rows="dynamic", use_container_width=True, hide_index=True, height=1000, key="gsheet_editor"
+                num_rows="dynamic", use_container_width=True, hide_index=True, height=950, key="gsheet_editor"
             )
             if st.button("💾 구글 시트에 저장"):
                 manager.save_assets(edited_df)
                 st.success("구글 시트 데이터가 업데이트되었습니다!")
         except Exception as e:
             st.error(f"데이터를 불러오지 못했습니다. URL 설정을 확인하세요: {e}")
-
-        
+            
 
     # [탭 1: 리포트]
     with tab1:
@@ -321,4 +320,3 @@ if check_password():
             
 
             
-
