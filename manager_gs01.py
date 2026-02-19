@@ -167,6 +167,7 @@ if check_password():
 
     # [탭 1: 리포트]
     with tab1:
+        dividend_month = 0
         st.sidebar.header("조회 조건")
         target_year = st.sidebar.text_input("년도 (YYYY)", value=datetime.now().strftime('%Y'))
 
@@ -206,6 +207,8 @@ if check_password():
                     }])
                     final_list.append(sum_row)
                     prev_month_after_tax_usd = current_month_after_tax_usd
+                    dividend_month = dividend_month + 1
+
                         
                 display_df = pd.concat(final_list, ignore_index=True).drop(columns=['pay_month']).fillna("")
                 final_cols = ['배당락일', '현지지급일', '국내지급일', '종목코드', '수량', '종가', '배당률(%)', '배당금', '세전(USD)', '세후(USD)', '세전(원)', '세후(원)', '환율', '계좌번호']
@@ -301,15 +304,49 @@ if check_password():
             with col_metrics:
                 st.write("#### 3. 주요 성과 지표")
                 total_usd = df['세후(USD)'].sum()
-                avg_usd = total_usd / 12
-                top_row = ticker_df.loc[ticker_df['세후(USD)'].idxmax()]
-                
-                # 시각적으로 강조된 카드 배치
-                st.info(f"**올해 누적 배당금:** \n### ${total_usd:,.2f}")
-                st.success(f"**월 평균 배당금:** \n### ${avg_usd:,.2f}")
-                st.warning(f"**최고 배당 종목:** \n### {top_row['종목코드']} (${top_row['세후(USD)']:,.2f})")
 
-                
+                if dividend_month > 0:
+                    avg_usd = total_usd / dividend_month
+                else:
+                    avg_usd = 0
+                top_row = ticker_df.loc[ticker_df['세후(USD)'].idxmax()]
+
+                # 시각적으로 강조된 카드 배치
+                #st.info(f"**올해 누적 배당금:** \n### ${total_usd:,.2f}")
+                #st.success(f"**월 평균 배당금:** \n### ${avg_usd:,.2f}")
+                #st.warning(f"**최고 배당 종목:** \n### {top_row['종목코드']} (${top_row['세후(USD)']:,.2f})")
+
+                # 1. 올해 누적 배당금 (Info 스타일 - 파란색 계열)
+                st.markdown(f"""
+                    <div style="background-color: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 5px; border: 1px solid #bee5eb;">
+                        <div style="text-align: left; font-size: 16px; font-weight: bold;">올해 누적 배당금</div>
+                        <div style="text-align: center; font-size: 30px; font-weight: bold; margin-top: 10px;">
+                            ${total_usd:,.2f}
+                        </div>
+                    </div>
+                    <br>
+                """, unsafe_allow_html=True)
+
+                # 2. 월 평균 배당금
+                st.markdown(f"""
+                    <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
+                        <div style="text-align: left; font-size: 16px; font-weight: bold;">월 평균 배당금</div>
+                        <div style="text-align: center; font-size: 30px; font-weight: bold; margin-top: 10px;">
+                            ${avg_usd:,.2f}
+                        </div>
+                    </div>
+                    <br>
+                """, unsafe_allow_html=True)
+
+                # 3. 최고 배당 종목
+                st.markdown(f"""
+                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba;">
+                        <div style="text-align: left; font-size: 16px; font-weight: bold;">최고 배당 종목</div>
+                        <div style="text-align: center; font-size: 30px; font-weight: bold; margin-top: 10px;">
+                            {top_row['종목코드']} (${top_row['세후(USD)']:,.2f})
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
 
         else:
             st.info("💡 사이드바에서 '조회' 버튼을 클릭하여 데이터를 먼저 로드해 주세요.")
