@@ -340,7 +340,7 @@ if check_password():
 
                 # 3. 최고 배당 종목
                 st.markdown(f"""
-                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba;">
+                    <div style="background-color: #fff3cd; color: #000000; padding: 15px; border-radius: 5px; border: 1px solid #ffeeba;">
                         <div style="text-align: left; font-size: 16px; font-weight: bold;">최고 배당 종목</div>
                         <div style="text-align: center; font-size: 30px; font-weight: bold; margin-top: 10px;">
                             {top_row['종목코드']} (${top_row['세후(USD)']:,.2f})
@@ -357,3 +357,4 @@ if check_password():
             
 
             
+
